@@ -1,7 +1,7 @@
-Setups to reproduce the error:
+Setups to reproduce the error:<br>
 
-Run the following:
-source setup.sh
-./run_cluster.sh
-./train_distributed_db.sh
-./inference.sh
+Run the following:<br>
+source setup.sh<br>
+./run_cluster.sh<br>
+./train_distributed_db.sh<br>
+./inference.sh<br>
