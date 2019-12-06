@@ -91,7 +91,12 @@ def main_fun(args, ctx):
         train_op=optimizer.minimize(
             loss, tf.compat.v1.train.get_or_create_global_step()))
 
-  strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
+  # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
+  # parameter_servers = ["localhost:12345"]
+  # workers = ["localhost:34567", "localhost:45678"]
+  # cluster = tf.train.ClusterSpec({"ps": parameter_servers, "worker": workers})
+  # cluster_spec = tf.distribute.cluster_resolver.SimpleClusterResolver(cluster_spec=cluster)
+  strategy = tf.distribute.experimental.ParameterServerStrategy()
   config = tf.estimator.RunConfig(train_distribute=strategy, save_checkpoints_steps=100)
 
   classifier = tf.estimator.Estimator(
@@ -125,7 +130,6 @@ if __name__ == "__main__":
   from pyspark.conf import SparkConf
   from tensorflowonspark import TFCluster
   import argparse
-
   sc = SparkContext(conf=SparkConf().setAppName("mnist_estimator"))
   executors = sc._conf.get("spark.executor.instances")
   num_executors = int(executors) if executors is not None else 1
@@ -151,6 +155,7 @@ if __name__ == "__main__":
 
   images_labels = sc.textFile(args.images_labels).map(parse)
 
-  cluster = TFCluster.run(sc, main_fun, args, args.cluster_size, num_ps=0, tensorboard=args.tensorboard, input_mode=TFCluster.InputMode.SPARK, log_dir=args.model_dir, master_node='chief')
+  # cluster = TFCluster.run(sc, main_fun, args, args.cluster_size, num_ps=0, tensorboard=args.tensorboard, input_mode=TFCluster.InputMode.SPARK, log_dir=args.model_dir, master_node='chief')
+  cluster = TFCluster.run(sc, main_fun, args, args.cluster_size, num_ps=1, tensorboard=args.tensorboard, input_mode=TFCluster.InputMode.SPARK, log_dir=args.model_dir)
   cluster.train(images_labels, args.epochs)
   cluster.shutdown(grace_secs=120)  # allow time for the chief to export model after data feeding

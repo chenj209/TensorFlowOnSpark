@@ -8,7 +8,8 @@ def main_fun(args, ctx):
   import tensorflow as tf
   tfds.disable_progress_bar()
 
-  strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
+  # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
+  strategy = tf.distribute.experimental.ParameterServerStrategy()
 
   BUFFER_SIZE = args.buffer_size
   BATCH_SIZE = args.batch_size
@@ -90,5 +91,6 @@ if __name__ == '__main__':
   args = parser.parse_args()
   print("args:", args)
 
-  cluster = TFCluster.run(sc, main_fun, args, args.cluster_size, num_ps=0, tensorboard=args.tensorboard, input_mode=TFCluster.InputMode.TENSORFLOW, master_node='chief')
+  # cluster = TFCluster.run(sc, main_fun, args, args.cluster_size, num_ps=0, tensorboard=args.tensorboard, input_mode=TFCluster.InputMode.TENSORFLOW, master_node='chief')
+  cluster = TFCluster.run(sc, main_fun, args, args.cluster_size, num_ps=1, tensorboard=args.tensorboard, input_mode=TFCluster.InputMode.TENSORFLOW)
   cluster.shutdown()

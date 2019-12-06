@@ -1,5 +1,7 @@
 # path to the SavedModel export
+# shellcheck disable=SC2154
 export MODEL_BASE=${TFoS_HOME}/mnist_export
+# shellcheck disable=SC2155
 export MODEL_VERSION=$(ls ${MODEL_BASE} | sort -n | tail -n 1)
 export SAVED_MODEL=${MODEL_BASE}/${MODEL_VERSION}
 

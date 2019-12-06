@@ -7,8 +7,10 @@ def main_fun(args, ctx):
   import numpy as np
   import tensorflow as tf
   from tensorflowonspark import TFNode
+  import os
 
-  strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
+  # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
+  strategy = tf.distribute.experimental.ParameterServerStrategy()
 
   def build_and_compile_cnn_model():
     model = tf.keras.Sequential([
@@ -45,12 +47,32 @@ def main_fun(args, ctx):
 
   ds = tf.data.Dataset.from_generator(rdd_generator, (tf.float32, tf.float32), (tf.TensorShape([28, 28, 1]), tf.TensorShape([1])))
   ds = ds.batch(args.batch_size)
+  print(args.batch_size)
+  for example in ds.take(10):
+    print(f"image: {example[0]}")
+    print(f"label: {example[1]}")
 
   # this fails
   # callbacks = [tf.keras.callbacks.ModelCheckpoint(filepath=args.model_dir)]
   tf.io.gfile.makedirs(args.model_dir)
   filepath = args.model_dir + "/weights-{epoch:04d}"
-  callbacks = [tf.keras.callbacks.ModelCheckpoint(filepath=filepath, verbose=1, save_weights_only=True)]
+
+  class TestCallback(tf.keras.callbacks.Callback):
+    # def on_epoch_begin(self, epoch, logs):
+    #   print(f"Epoch begin: {epoch}")
+    def on_epoch_end(self, epoch, logs):
+      print(f"Epoch end: {epoch}")
+      print(f"logs: {logs}")
+    # def on_batch_begin(self, batch, logs):
+    #   print(f"Batch: {batch}, {logs}")
+    def on_batch_end(self, batch, logs):
+      print(f"Batch: {batch}, {logs}")
+
+
+  callbacks = [
+    TestCallback(),
+    tf.keras.callbacks.ModelCheckpoint(filepath=filepath, verbose=1, save_weights_only=True)
+  ]
 
   with strategy.scope():
     multi_worker_model = build_and_compile_cnn_model()
@@ -104,7 +126,8 @@ if __name__ == '__main__':
 
   images_labels = sc.textFile(args.images_labels).map(parse)
 
-  cluster = TFCluster.run(sc, main_fun, args, args.cluster_size, num_ps=0, tensorboard=args.tensorboard, input_mode=TFCluster.InputMode.SPARK, master_node='chief')
+  # cluster = TFCluster.run(sc, main_fun, args, args.cluster_size, num_ps=1, tensorboard=args.tensorboard, input_mode=TFCluster.InputMode.SPARK, master_node='chief')
+  cluster = TFCluster.run(sc, main_fun, args, args.cluster_size, num_ps=1, tensorboard=args.tensorboard, input_mode=TFCluster.InputMode.SPARK)
   # Note: need to feed extra data to ensure that each worker receives sufficient data to complete epochs
   # to compensate for variability in partition sizes and spark scheduling
   cluster.train(images_labels, args.epochs)
